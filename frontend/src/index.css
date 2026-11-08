@@ -1,0 +1,12 @@
+:root {
+  --color-cafe-oscuro: #3E2723; /* Café para barras de navegación y textos principales */
+  --color-cafe-medio: #5D4037;  /* Café para tarjetas y contenedores */
+  --color-dorado: #D4AF37;      /* Dorado para acentos, bordes y botones secundarios */
+  --color-amarillo-calido: #F4C430; /* Amarillo cálido para botones principales y ofertas */
+  --color-fondo-crema: #FFF8E7; /* Fondo suave para la página */
+}
+
+body {
+  background-color: var(--color-fondo-crema);
+  color: var(--color-cafe-oscuro);
+}
