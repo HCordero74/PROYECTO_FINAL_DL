@@ -2,14 +2,19 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const pool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'tu_contraseña', 
-    database: process.env.DB_DATABASE || 'softjobs', 
-    port: process.env.DB_PORT || 5432,
-    allowExitOnIdle: true
-});
+const pool = process.env.DATABASE_URL
+    ? new Pool({
+          connectionString: process.env.DATABASE_URL,
+          ssl: { rejectUnauthorized: false },
+      })
+    : new Pool({
+          host: process.env.DB_HOST || 'localhost',
+          user: process.env.DB_USER || 'postgres',
+          password: process.env.DB_PASSWORD || 'tu_contraseña',
+          database: process.env.DB_DATABASE || 'softjobs',
+          port: process.env.DB_PORT || 5432,
+          allowExitOnIdle: true,
+      });
 
 // Prueba de conexión inicial
 pool.query('SELECT NOW()', (err, res) => {
