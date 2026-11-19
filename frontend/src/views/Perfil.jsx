@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LucyContext } from '../context/LucyContext';
 
 export default function Perfil() {
-  const { user, logout, productos, setProductos, favoritos, toggleFavorito } = useContext(LucyContext);
+  const { user, logout, productos, setProductos, favoritos, toggleFavorito, agregarAlCarrito } = useContext(LucyContext);
   const navigate = useNavigate();
 
   // Validación booleana para determinar si el usuario tiene privilegios de administrador
@@ -116,22 +116,64 @@ export default function Perfil() {
                 <h4 className="fw-bold mb-3">Productos Favoritos</h4>
                 {favoritos.length > 0 ? (
                   <Row className="g-3">
-                    {favoritos.map((prod) => (
-                      <Col md={6} key={prod.id}>
-                        <Card className="p-3 shadow-sm border-0 d-flex flex-row align-items-center justify-content-between">
-                          <div className="d-flex align-items-center gap-3">
-                            <img src={prod.img} alt={prod.name} style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px' }} />
-                            <div>
-                              <h6 className="fw-bold mb-1">{prod.name}</h6>
-                              <p className="text-success mb-1 fw-bold">${prod.price?.toLocaleString('es-CL')}</p>
+                    {favoritos.map((prod) => {
+                      const productoActual = productos.find((p) => String(p.id) === String(prod.id));
+                      const productoMostrado = productoActual || prod;
+                      const noDisponible =
+                        !productoActual || (!productoActual.aPedido && (productoActual.stock ?? 0) <= 0);
+
+                      return (
+                        <Col md={6} key={prod.id}>
+                          <Card className="p-3 shadow-sm border-0 d-flex flex-row align-items-center justify-content-between">
+                            <div className="d-flex align-items-center gap-3">
+                              <img
+                                src={productoMostrado.img}
+                                alt={productoMostrado.name}
+                                style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px' }}
+                              />
+                              <div>
+                                <h6 className="fw-bold mb-1">{productoMostrado.name}</h6>
+                                <p className="text-success mb-1 fw-bold">
+                                  ${productoMostrado.price?.toLocaleString('es-CL')}
+                                </p>
+                                {productoActual && !productoActual.aPedido && (
+                                  <small className="text-muted">
+                                    Stock disponible: {productoActual.stock ?? 0}
+                                  </small>
+                                )}
+                                {!productoActual && (
+                                  <small className="text-danger">Producto ya no disponible en catálogo</small>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <Button variant="outline-danger" size="sm" onClick={() => toggleFavorito(prod)}>
-                            🗑️ Quitar
-                          </Button>
-                        </Card>
-                      </Col>
-                    ))}
+
+                            <div className="d-flex flex-column gap-2">
+                              <Button
+                                variant="warning"
+                                size="sm"
+                                className="fw-bold text-dark"
+                                disabled={noDisponible}
+                                onClick={() => productoActual && agregarAlCarrito(productoActual)}
+                              >
+                                {!productoActual
+                                  ? 'No disponible'
+                                  : noDisponible
+                                    ? 'Sin stock'
+                                    : '🛒 Agregar'}
+                              </Button>
+
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => toggleFavorito(prod)}
+                              >
+                                🗑️ Quitar
+                              </Button>
+                            </div>
+                          </Card>
+                        </Col>
+                      );
+                    })}
                   </Row>
                 ) : (
                   <Card className="p-4 text-center border-0 shadow-sm text-muted">
