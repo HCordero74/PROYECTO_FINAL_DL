@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { obtenerProductos, registrarUsuario, verificarCredenciales } = require('./consultas');
-const { reportarConsulta, verificarToken } = require('./middlewares');
+const { reportarConsulta, verificarToken, verificarAdmin } = require('./middlewares');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,26 +25,33 @@ app.get('/productos', verificarToken, async (req, res) => {
     }
 });
 
-// 2. Ruta para registrar un nuevo usuario
+// 2. Ruta para registrar un nuevo usuario (asigna 'cliente' por defecto)
 app.post('/usuarios', async (req, res) => {
     try {
-        const { email, password, rol, lenguage } = req.body;
-        const nuevoUsuario = await registrarUsuario(email, password, rol, lenguage);
+        const { email, password, lenguage } = req.body;
+        const rolPorDefecto = 'cliente'; // Blindaje: todo registro público entra como cliente
+        const nuevoUsuario = await registrarUsuario(email, password, rolPorDefecto, lenguage);
         res.status(201).json({ mensaje: 'Usuario registrado con éxito', usuario: nuevoUsuario });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// 3. Ruta para el Login (Genera el token JWT)
+// 3. Ruta para el Login (Genera el token JWT con el rol incluido)
 app.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        await verificarCredenciales(email, password);
+        // Obtenemos el usuario completo desde verificarCredenciales para extraer su rol
+        const usuario = await verificarCredenciales(email, password);
         
-        // Se crea el token con los datos del usuario
-        const token = jwt.sign({ email }, SECRET_KEY, { expiresIn: '1h' });
-        res.json({ mensaje: 'Autenticación exitosa', token });
+        // Se incluye el rol y el email en el payload del token JWT
+        const token = jwt.sign({ email: usuario.email, rol: usuario.rol }, SECRET_KEY, { expiresIn: '1h' });
+        
+        res.json({ 
+            mensaje: 'Autenticación exitosa', 
+            token, 
+            rol: usuario.rol // Opcional: útil para que el frontend sepa el rol de inmediato
+        });
     } catch (error) {
         res.status(error.code || 500).json({ error: error.message });
     }

@@ -1,7 +1,6 @@
-import { useState, useContext } from 'react'; // 👈 1. Importa useContext
+import { useState } from 'react';
 import { Container, Card, Form, Button, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { LucyContext } from '../context/LucyContext'; // 👈 2. Importa el contexto
 
 export default function Register() {
   const [nombre, setNombre] = useState('');
@@ -11,10 +10,12 @@ export default function Register() {
   const [error, setError] = useState('');
   const [exito, setExito] = useState(false);
 
-  const { setUser } = useContext(LucyContext); // 👈 3. Extrae setUser del contexto
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  // Lee automáticamente la variable de entorno desde .env
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!nombre.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -32,24 +33,38 @@ export default function Register() {
       return;
     }
 
-    setError('');
-    
-    // Se Guarda el usuario registrado con su contraseña en el contexto global
-    setUser({
-      nombre,
-      email,
-      password
-    });
+    try {
+      // Petición real al backend para guardar el usuario en PostgreSQL con rol 'cliente' por defecto
+      const response = await fetch(`${API_URL}/usuarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          rol: 'cliente', // Blindaje: se registra estrictamente como cliente
+          lenguage: 'Español' // Si tu backend requiere este campo según pruebas anteriores
+        })
+      });
 
-    setExito(true);
+      const data = await response.json();
 
-    setTimeout(() => {
-      navigate('/login');
-    }, 2000);
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al registrar el usuario');
+      }
+
+      setError('');
+      setExito(true);
+
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+
+    } catch (err) {
+      setError(err.message || 'Error al conectar con el servidor.');
+    }
   };
 
   return (
-    // ... el return se mantiene exactamente igual ...
     <Container className="d-flex justify-content-center align-items-center py-5">
       <Card style={{ maxWidth: '480px', width: '100%' }} className="shadow-sm border-0 p-4">
         <Card.Body>

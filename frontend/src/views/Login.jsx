@@ -8,10 +8,13 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
-  const { user, setUser } = useContext(LucyContext);
+  const { setUser } = useContext(LucyContext);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  // Lee automáticamente la variable de tu archivo .env (https://panaderia-lucy-backend.onrender.com/api)
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email.trim() || !password.trim()) {
@@ -19,22 +22,29 @@ export default function Login() {
       return;
     }
 
-    // Se valida contra el usuario que se registró en el contexto
-    if (!user || user.email !== email) {
-      setError('El correo electrónico no está registrado.');
-      return;
-    }
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
-    // Se valida estrictamente la contraseña (distingue mayúsculas y minúsculas con ===)
-    if (user.password !== password) {
-      setError('Contraseña incorrecta. Revisa mayúsculas y minúsculas.');
-      return;
-    }
+      const data = await response.json();
 
-    setError('');
-    
-    // Login exitoso, se redirige al perfil manteniendo los datos del usuario
-    navigate('/perfil');
+      if (!response.ok) {
+        throw new Error(data.error || 'Credenciales inválidas');
+      }
+
+      // Guarda el token y los datos del usuario (incluyendo su rol)
+      localStorage.setItem('token', data.token);
+      setUser({ email, rol: data.rol });
+      localStorage.setItem('user', JSON.stringify({ email, rol: data.rol }));
+
+      setError('');
+      navigate('/perfil');
+    } catch (err) {
+      setError(err.message || 'Error al iniciar sesión. Inténtalo de nuevo.');
+    }
   };
 
   return (

@@ -33,7 +33,18 @@ const verificarToken = (req, res, next) => {
     }
 };
 
+const verificarAdmin = (req, res, next) => {
+    // req.user fue inyectado previamente por verificarToken
+    if (req.user && req.user.rol === 'admin') {
+        return next(); // El usuario es admin, puede continuar
+    }
+    return res.status(403).json({ 
+        message: "Acceso denegado. Se requieren privilegios de administrador para realizar esta acción." 
+    });
+};
+
 module.exports = {
     reportarConsulta,
-    verificarToken
+    verificarToken,
+    verificarAdmin
 };

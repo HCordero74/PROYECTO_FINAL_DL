@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { LucyProvider } from './context/LucyContext';
+import { useContext } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { LucyProvider, LucyContext } from './context/LucyContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
@@ -12,6 +13,17 @@ import Register from './views/Register';
 import Perfil from './views/Perfil';
 import Carrito from './views/Carrito';
 import CrearPublicacion from './views/CrearPublicacion';
+
+// Guardián de ruta para administradores
+const RutaAdmin = ({ children }) => {
+  const { user } = useContext(LucyContext);
+
+  if (!user || user.rol !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
 
 function App() {
   return (
@@ -28,8 +40,18 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/perfil" element={<Perfil />} />
+              
+              {/* Ruta blindada: solo accesible si user.rol === 'admin' */}
+              <Route 
+                path="/crear-producto" 
+                element={
+                  <RutaAdmin>
+                    <CrearPublicacion />
+                  </RutaAdmin>
+                } 
+              />
+
               <Route path="*" element={<Home />} />
-              <Route path="/crear-producto" element={<CrearPublicacion />} />
             </Routes>
           </main>
           <Footer />

@@ -69,7 +69,18 @@ export const LucyProvider = ({ children }) => {
 
   const [carrito, setCarrito] = useState([]);
   const [favoritos, setFavoritos] = useState([]);
-  const [user, setUser] = useState(null);
+  // Se inicializa leyendo si existe una sesión guardada:
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  // Función para cerrar sesión
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  };
 
   const agregarAlCarrito = (producto) => {
     const prodRef = productos.find((p) => p.id === producto.id);
@@ -179,6 +190,7 @@ export const LucyProvider = ({ children }) => {
         toggleFavorito,
         user,
         setUser,
+        logout,
         agregarAlCarrito,
         incrementarCount,
         decrementarCount,
