@@ -55,8 +55,52 @@ const verificarCredenciales = async (email, password) => {
     return usuario;
 };
 
+// 4. Crear un nuevo producto en PostgreSQL
+const crearProducto = async ({ nombre, descripcion, precio, stock, categoria, imagen }) => {
+    const consulta = `
+        INSERT INTO productos (nombre, descripcion, precio, stock, categoria, imagen)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
+    `;
+    const values = [nombre, descripcion, precio, stock, categoria, imagen];
+    const { rows } = await pool.query(consulta, values);
+    return rows[0];
+};
+
+// 5. Editar un producto existente por ID en PostgreSQL
+const actualizarProducto = async (id, { nombre, descripcion, precio, stock, categoria, imagen }) => {
+    const consulta = `
+        UPDATE productos
+        SET nombre = $1,
+            descripcion = $2,
+            precio = $3,
+            stock = $4,
+            categoria = $5,
+            imagen = $6
+        WHERE id = $7
+        RETURNING *
+    `;
+    const values = [nombre, descripcion, precio, stock, categoria, imagen, id];
+    const { rows, rowCount } = await pool.query(consulta, values);
+
+    if (!rowCount) throw { code: 404, message: 'Producto no encontrado' };
+    return rows[0];
+};
+
+// 6. Eliminar un producto por ID en PostgreSQL
+const eliminarProductoPorId = async (id) => {
+    const consulta = 'DELETE FROM productos WHERE id = $1 RETURNING *';
+    const { rows, rowCount } = await pool.query(consulta, [id]);
+
+    if (!rowCount) throw { code: 404, message: 'Producto no encontrado' };
+    return rows[0];
+};
+
 module.exports = {
     obtenerProductos,
     registrarUsuario,
-    verificarCredenciales
+    verificarCredenciales,
+    crearProducto,
+    actualizarProducto,
+    eliminarProductoPorId
 };

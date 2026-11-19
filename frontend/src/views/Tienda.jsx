@@ -29,14 +29,24 @@ export default function Tienda() {
 
   // Filtrado de subproductos según categoría y búsqueda
   const productosFiltrados = productos.filter((p) => {
-    const coincideCategoria = 
-      categoriaSeleccionada === 'todas' || p.categoria === categoriaSeleccionada;
-    const coincideBusqueda = 
-      p.name.toLowerCase().includes(busqueda.toLowerCase()) ||
-      p.desc.toLowerCase().includes(busqueda.toLowerCase());
-    
-    return coincideCategoria && coincideBusqueda;
-  });
+  const catProducto = (p.categoria || p.category || '').toLowerCase().trim();
+  const catFiltro = categoriaSeleccionada.toLowerCase().trim();
+
+  // Permite coincidencia exacta o por raíz (ej. "pan" coincide con "panadería")
+  const coincideCategoria =
+    catFiltro === 'todas' ||
+    catProducto === catFiltro ||
+    (catFiltro === 'pan' && catProducto.startsWith('pan')) ||
+    (catFiltro === 'pasteleria' && (catProducto.includes('pastel') || catProducto.includes('pasteler'))) ||
+    (catFiltro === 'tortas' && catProducto.includes('torta')) ||
+    (catFiltro === 'cafe' && (catProducto.includes('café') || catProducto.includes('cafe')));
+
+  const coincideBusqueda =
+    (p.name || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (p.desc || '').toLowerCase().includes(busqueda.toLowerCase());
+
+  return coincideCategoria && coincideBusqueda;
+});
 
   const familiasBtns = [
     { id: 'todas', nombre: 'Todas las Familias' },

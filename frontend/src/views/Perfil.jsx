@@ -1,24 +1,121 @@
-import { useContext } from 'react';
-import { Container, Card, Button, Badge, Row, Col, Tab, Nav } from 'react-bootstrap';
+import { useContext, useState } from 'react';
+import { Container, Card, Button, Badge, Row, Col, Tab, Nav, Modal, Form, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { LucyContext } from '../context/LucyContext';
 
 export default function Perfil() {
-  const { user, logout, productos, setProductos, favoritos, toggleFavorito, agregarAlCarrito } = useContext(LucyContext);
+  const {
+    user,
+    logout,
+    productos,
+    editarProductoAPI,
+    eliminarProductoAPI,
+    favoritos,
+    toggleFavorito,
+    agregarAlCarrito,
+  } = useContext(LucyContext);
   const navigate = useNavigate();
 
   // Validación booleana para determinar si el usuario tiene privilegios de administrador
   const esAdmin = user?.rol === 'admin';
+
+  // Estados para editar un producto
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [productoEditando, setProductoEditando] = useState(null);
+  const [formEdit, setFormEdit] = useState({
+    name: '',
+    desc: '',
+    price: '',
+    stock: '',
+    category: 'Panadería',
+    img: '',
+  });
 
   const handleLogout = () => {
     logout(); // Limpia estado global y elimina token/user de localStorage
     navigate('/');
   };
 
-  // Función para eliminar un producto publicado (solo accesible para admin)
-  const eliminarProducto = (id) => {
-    const nuevosProductos = productos.filter((p) => p.id !== id);
-    setProductos(nuevosProductos);
+  // Función para eliminar un producto publicado en PostgreSQL (solo accesible para admin)
+  const eliminarProducto = async (id) => {
+    try {
+      await eliminarProductoAPI(id);
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar el producto en el servidor.');
+    }
+  };
+
+  // Abre el modal cargando los datos actuales del producto seleccionado
+  const abrirEdicion = (prod) => {
+    setProductoEditando(prod);
+    setEditError('');
+    setFormEdit({
+      name: prod.name || '',
+      desc: prod.desc || '',
+      price: prod.price ?? '',
+      stock: prod.stock ?? 0,
+      category: prod.category || prod.categoria || 'Panadería',
+      img: prod.img || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const cerrarEdicion = () => {
+    setShowEditModal(false);
+    setProductoEditando(null);
+    setEditError('');
+    setGuardandoEdicion(false);
+  };
+
+  // Guarda los cambios del producto editado en PostgreSQL y actualiza el estado global
+  const guardarEdicion = async (e) => {
+    e.preventDefault();
+
+    if (
+      !formEdit.name.trim() ||
+      !formEdit.desc.trim() ||
+      formEdit.price === '' ||
+      formEdit.stock === '' ||
+      !formEdit.img.trim()
+    ) {
+      setEditError('Por favor, completa todos los campos del producto.');
+      return;
+    }
+
+    const precioNum = Number(formEdit.price);
+    const stockNum = Number(formEdit.stock);
+
+    if (Number.isNaN(precioNum) || precioNum <= 0) {
+      setEditError('Ingresa un precio válido mayor a 0.');
+      return;
+    }
+
+    if (Number.isNaN(stockNum) || stockNum < 0) {
+      setEditError('Ingresa un stock válido (0 o mayor).');
+      return;
+    }
+
+    setEditError('');
+    setGuardandoEdicion(true);
+
+    try {
+      await editarProductoAPI(productoEditando.id, {
+        name: formEdit.name.trim(),
+        desc: formEdit.desc.trim(),
+        price: precioNum,
+        stock: stockNum,
+        category: formEdit.category,
+        categoria: formEdit.category.toLowerCase(),
+        img: formEdit.img.trim(),
+      });
+
+      cerrarEdicion();
+    } catch (err) {
+      setEditError(err.message || 'No se pudieron guardar los cambios en el servidor.');
+      setGuardandoEdicion(false);
+    }
   };
 
   return (
@@ -33,7 +130,7 @@ export default function Perfil() {
               {user?.nombre || (esAdmin ? 'Administrador Panadería' : 'Cliente Frecuente')}
             </h2>
             <p className="text-muted mb-2">{user?.email || 'cliente@panaderialucy.cl'}</p>
-            
+
             <div className="d-flex justify-content-center gap-2 mb-3">
               {esAdmin ? (
                 <Badge bg="dark" text="warning" className="px-3 py-2">
@@ -89,13 +186,21 @@ export default function Perfil() {
                         <Col md={6} key={prod.id}>
                           <Card className="p-3 shadow-sm border-0 d-flex flex-row align-items-center justify-content-between">
                             <div className="d-flex align-items-center gap-3">
-                              <img src={prod.img} alt={prod.name} style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px' }} />
+                              <img
+                                src={prod.img}
+                                alt={prod.name}
+                                style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px' }}
+                              />
                               <div>
                                 <h6 className="fw-bold mb-1">{prod.name}</h6>
                                 <p className="text-success mb-1 fw-bold">${prod.price?.toLocaleString('es-CL')}</p>
+                                <small className="text-muted">Stock: {prod.stock ?? 0} u.</small>
                               </div>
                             </div>
                             <div className="d-flex flex-column gap-1">
+                              <Button variant="outline-primary" size="sm" onClick={() => abrirEdicion(prod)}>
+                                ✏️ Editar
+                              </Button>
                               <Button variant="outline-danger" size="sm" onClick={() => eliminarProducto(prod.id)}>
                                 🗑️ Eliminar
                               </Button>
@@ -185,6 +290,92 @@ export default function Perfil() {
           </Col>
         </Row>
       </Tab.Container>
+
+      {/* Modal para editar producto */}
+      <Modal show={showEditModal} onHide={cerrarEdicion} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="fw-bold">✏️ Editar Producto</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={guardarEdicion}>
+          <Modal.Body>
+            {editError && <Alert variant="danger">{editError}</Alert>}
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold">Título del Producto:</Form.Label>
+              <Form.Control
+                type="text"
+                value={formEdit.name}
+                onChange={(e) => setFormEdit({ ...formEdit, name: e.target.value })}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold">Descripción:</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={formEdit.desc}
+                onChange={(e) => setFormEdit({ ...formEdit, desc: e.target.value })}
+              />
+            </Form.Group>
+
+            <Row>
+              <Col sm={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold">Precio ($):</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="1"
+                    value={formEdit.price}
+                    onChange={(e) => setFormEdit({ ...formEdit, price: e.target.value })}
+                  />
+                </Form.Group>
+              </Col>
+              <Col sm={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold">Stock (unidades):</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    value={formEdit.stock}
+                    onChange={(e) => setFormEdit({ ...formEdit, stock: e.target.value })}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold">Categoría:</Form.Label>
+              <Form.Select
+                value={formEdit.category}
+                onChange={(e) => setFormEdit({ ...formEdit, category: e.target.value })}
+              >
+                <option value="Panadería">Panadería</option>
+                <option value="Pastelería">Pastelería</option>
+                <option value="Tortas">Tortas</option>
+                <option value="Café">Café</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-2">
+              <Form.Label className="fw-semibold">URL de la imagen:</Form.Label>
+              <Form.Control
+                type="text"
+                value={formEdit.img}
+                onChange={(e) => setFormEdit({ ...formEdit, img: e.target.value })}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={cerrarEdicion} disabled={guardandoEdicion}>
+              Cancelar
+            </Button>
+            <Button variant="warning" type="submit" className="fw-bold text-dark" disabled={guardandoEdicion}>
+              {guardandoEdicion ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </Container>
   );
 }

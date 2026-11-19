@@ -4,43 +4,63 @@ import { useNavigate } from 'react-router-dom';
 import { LucyContext } from '../context/LucyContext';
 
 export default function CrearPublicacion() {
-  const { productos, setProductos } = useContext(LucyContext);
+  const { crearProductoAPI } = useContext(LucyContext);
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [price, setPrice] = useState('');
+  const [stock, setStock] = useState('');
   const [category, setCategory] = useState('Panadería');
   const [img, setImg] = useState('');
   const [exito, setExito] = useState(false);
   const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !desc.trim() || !price || !img.trim()) {
+    if (!name.trim() || !desc.trim() || !price || stock === '' || !img.trim()) {
       setError('Por favor, completa todos los campos requeridos.');
       return;
     }
 
+    const precioNum = Number(price);
+    const stockNum = Number(stock);
+
+    if (Number.isNaN(precioNum) || precioNum <= 0) {
+      setError('Ingresa un precio válido mayor a 0.');
+      return;
+    }
+
+    if (Number.isNaN(stockNum) || stockNum < 0) {
+      setError('Ingresa un stock válido (0 o mayor).');
+      return;
+    }
+
     setError('');
-    
-    // Crear el nuevo producto simulado
-    const nuevoProducto = {
-      id: productos.length > 0 ? productos[productos.length - 1].id + 1 : 1,
-      name,
-      desc,
-      price: Number(price),
-      category,
-      img
-    };
+    setGuardando(true);
 
-    setProductos([...productos, nuevoProducto]);
-    setExito(true);
+    try {
+      await crearProductoAPI({
+        name: name.trim(),
+        desc: desc.trim(),
+        price: precioNum,
+        stock: stockNum,
+        category,
+        categoria: category.toLowerCase(),
+        img: img.trim(),
+      });
 
-    setTimeout(() => {
-      navigate('/tienda');
-    }, 2000);
+      setExito(true);
+      setTimeout(() => {
+        navigate('/tienda');
+      }, 1500);
+    } catch (err) {
+      setError(err.message || 'No se pudo publicar el producto en el servidor.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -85,6 +105,17 @@ export default function CrearPublicacion() {
             </Form.Group>
 
             <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold">Stock (unidades):</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                placeholder="Ej. 15"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
               <Form.Label className="fw-semibold">Categoría:</Form.Label>
               <Form.Select value={category} onChange={(e) => setCategory(e.target.value)}>
                 <option value="Panadería">Panadería</option>
@@ -104,8 +135,13 @@ export default function CrearPublicacion() {
               />
             </Form.Group>
 
-            <Button variant="warning" type="submit" className="w-100 fw-bold text-dark shadow-sm">
-              PUBLICAR PRODUCTO
+            <Button
+              variant="warning"
+              type="submit"
+              disabled={guardando}
+              className="w-100 fw-bold text-dark shadow-sm"
+            >
+              {guardando ? 'PUBLICANDO...' : 'PUBLICAR PRODUCTO'}
             </Button>
           </Form>
         </Card.Body>
