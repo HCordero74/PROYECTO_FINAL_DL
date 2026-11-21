@@ -1,7 +1,7 @@
 import { Container, Row, Col, Card, Button, Image } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 
-// Importamos las imágenes locales si las guardaste en src/assets/
+// Importamos las imágenes locales que se encuentran en src/assets/
 import berlinesImg from '../assets/berlines.jpg';
 import tortaImg from '../assets/Torta.jpg';
 
@@ -44,30 +44,29 @@ export default function Home() {
       <Container>
         {/* Encabezado Principal con alineación vertical perfecta */}
         <div className="mb-5">
-          <Row className="align-items-center justify-content-center">
+          <Row className="align-items-center justify-content-center g-2">
             {/* Foto de los Berlines (Izquierda) */}
             <Col xs={3} md={2} className="text-end">
               <Image 
                 src={berlinesImg} 
                 alt="Berlines artesanales" 
                 roundedCircle 
-                className="shadow-sm border border-warning"
-                style={{ width: '130px', height: '130px', objectFit: 'cover' }}
-              />
+                className="shadow-sm border border-warning foto-encabezado-lucy"
+             />
             </Col>
 
             {/* Título y Botón Principal (Centro) */}
-            <Col xs={6} md={8} className="text-center">
-              <h1 className="fw-bold text-dark fs-2 mb-2" style={{ letterSpacing: '1px' }}>
+            <Col xs={6} md={8} className="text-center px-1 px-md-3">
+              <h1 className="fw-bold text-dark fs-5 fs-md-2 mb-2" style={{ letterSpacing: '1px' }}>
                 PANADERÍA Y PASTELERÍA LUCY: TRADICIÓN Y SABOR ARTESANAL
               </h1>
-              <p className="text-muted fw-semibold fs-5 mb-3">
+              <p className="text-muted fw-semibold fs-6 fs-md-5 mb-3">
                 ENCUENTRE EL MEJOR PAN, TORTAS, DULCES ARTESANALES Y CAFÉ RECIÉN MOLIDO
               </p>
               <Button 
                 variant="outline-dark" 
                 size="md" 
-                className="px-4 py-2 fw-bold text-uppercase"
+                className="px-3 px-md-4 py-2 fw-bold text-uppercase"
                 onClick={() => navigate('/tienda')}
               >
                 VER TIENDA COMPLETA
@@ -80,8 +79,7 @@ export default function Home() {
                 src={tortaImg} 
                 alt="Torta artesanal" 
                 roundedCircle 
-                className="shadow-sm border border-warning"
-                style={{ width: '130px', height: '130px', objectFit: 'cover' }}
+                className="shadow-sm border border-warning foto-encabezado-lucy"
               />
             </Col>
           </Row>
@@ -101,6 +99,10 @@ export default function Home() {
                   src={fam.img} 
                   style={{ height: '160px', objectFit: 'cover' }} 
                   className="rounded-top-3"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=400&auto=format&fit=crop';
+                  }}
                 />
                 <Card.Body className="d-flex flex-column justify-content-center p-4">
                   <h3 className="fw-bold text-dark m-0 fs-3 text-uppercase">{fam.nombre}</h3>

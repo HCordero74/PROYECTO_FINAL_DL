@@ -10,3 +10,29 @@ body {
   background-color: var(--color-fondo-crema);
   color: var(--color-cafe-oscuro);
 }
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+.foto-encabezado-lucy {
+  width: 72px;
+  height: 72px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .foto-encabezado-lucy {
+    width: 105px;
+    height: 105px;
+  }
+}
+
+@media (min-width: 992px) {
+  .foto-encabezado-lucy {
+    width: 130px;
+    height: 130px;
+  }
+}

@@ -26,6 +26,10 @@ export default function ProductCard({ producto }) {
         src={producto.img}
         alt={producto.name}
         style={{ height: '180px', objectFit: 'cover' }}
+        onError={(e) => {
+          e.currentTarget.onerror = null;
+          e.currentTarget.src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80';
+        }}
       />
 
       <Card.Body className="d-flex flex-column">

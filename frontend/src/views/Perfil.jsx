@@ -190,6 +190,10 @@ export default function Perfil() {
                                 src={prod.img}
                                 alt={prod.name}
                                 style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px' }}
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80';
+                                }}
                               />
                               <div>
                                 <h6 className="fw-bold mb-1">{prod.name}</h6>
@@ -235,6 +239,10 @@ export default function Perfil() {
                                 src={productoMostrado.img}
                                 alt={productoMostrado.name}
                                 style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px' }}
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80';
+                                }}
                               />
                               <div>
                                 <h6 className="fw-bold mb-1">{productoMostrado.name}</h6>

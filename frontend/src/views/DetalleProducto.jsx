@@ -84,6 +84,10 @@ export default function DetalleProducto() {
               alt={producto.name} 
               className="img-fluid rounded shadow-sm"
               style={{ maxHeight: '400px', width: '100%', objectFit: 'cover' }}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80';
+              }}
             />
           </Col>
           <Col md={6}>
@@ -126,7 +130,7 @@ export default function DetalleProducto() {
                   className="w-100 fw-bold text-dark py-2" 
                   onClick={handleAgregarAlCarrito}
                 >
-                  🛒 Agregar al Carrito (${(producto.price * (producto.aPedido ? cantidad : cantidad)).toLocaleString('es-CL')})
+                  🛒 Agregar al Carrito (${(producto.price * cantidad).toLocaleString('es-CL')})
                 </Button>
               </>
             )}
