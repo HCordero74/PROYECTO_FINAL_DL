@@ -70,57 +70,66 @@ export default function Carrito() {
                 </tr>
               </thead>
               <tbody>
-                {carrito.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <div className="d-flex align-items-center gap-3">
-                        <img 
-                          src={item.img} 
-                          alt={item.name} 
-                          style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} 
-                        />
-                        <span className="fw-semibold">{item.name}</span>
-                      </div>
-                    </td>
-                    <td className="text-center">${item.price?.toLocaleString('es-CL')}</td>
-                    <td className="text-center">
-                      <div className="d-flex justify-content-center align-items-center gap-2">
-                        <Button 
-                          variant="outline-danger" 
-                          size="sm" 
-                          onClick={() => decrementarCount(item.id)}
+                {carrito.map((item) => {
+                  const claveItem = item.cartItemId || item.id;
+                  return (
+                    <tr key={claveItem}>
+                      <td>
+                        <div className="d-flex align-items-center gap-3">
+                          <img
+                            src={item.img}
+                            alt={item.name}
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
+                          />
+                          <div>
+                            <div className="fw-semibold">{item.name}</div>
+                            {item.tamano && (
+                              <span className="badge bg-light text-dark border mt-1">
+                                Tamaño: {item.tamano}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="text-center">${item.price?.toLocaleString('es-CL')}</td>
+                      <td className="text-center">
+                        <div className="d-flex justify-content-center align-items-center gap-2">
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => decrementarCount(claveItem)}
+                          >
+                            -
+                          </Button>
+                          <span className="fw-bold px-2">{item.count}</span>
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            onClick={() => incrementarCount(claveItem)}
+                          >
+                            +
+                          </Button>
+                        </div>
+                      </td>
+                      <td className="text-end fw-bold">${(item.price * item.count).toLocaleString('es-CL')}</td>
+                      <td className="text-center">
+                        <Button
+                          variant="link"
+                          className="text-danger p-0 border-0"
+                          onClick={() => eliminarDelCarrito(claveItem)}
+                          title="Eliminar producto"
                         >
-                          -
+                          🗑️
                         </Button>
-                        <span className="fw-bold px-2">{item.count}</span>
-                        <Button 
-                          variant="outline-success" 
-                          size="sm" 
-                          onClick={() => incrementarCount(item.id)}
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </td>
-                    <td className="text-end fw-bold">${(item.price * item.count).toLocaleString('es-CL')}</td>
-                    <td className="text-center">
-                      <Button 
-                        variant="link" 
-                        className="text-danger p-0 border-0" 
-                        onClick={() => eliminarDelCarrito(item.id)}
-                        title="Eliminar producto"
-                      >
-                        🗑️
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
           </Card>
         </Col>
 
-        {/* Resumen del Pedido */}
         <Col lg={4}>
           <Card className="shadow-sm border-0 p-4">
             <h4 className="fw-bold mb-3">Resumen de la Compra</h4>
@@ -137,9 +146,9 @@ export default function Carrito() {
               <span>Total:</span>
               <span className="text-success">${total.toLocaleString('es-CL')}</span>
             </div>
-            <Button 
-              variant="warning" 
-              size="lg" 
+            <Button
+              variant="warning"
+              size="lg"
               className="w-100 fw-bold text-dark"
               onClick={handlePagar}
             >

@@ -74,8 +74,6 @@ const PRODUCTOS_INICIALES = [
   }
 ];
 
-// Normaliza un producto venga desde PostgreSQL (nombre/descripcion/precio/imagen)
-// o desde el frontend (name/desc/price/img)
 const adaptarProducto = (prod = {}) => {
   const catRaw = prod.categoria ?? prod.category ?? 'pan';
   const catLower = String(catRaw).toLowerCase().trim();
@@ -99,6 +97,9 @@ const adaptarProducto = (prod = {}) => {
     aPedido: Boolean(prod.aPedido)
   };
 };
+
+const obtenerClaveItem = (item) =>
+  item.cartItemId || (item.tamano ? `${item.id}__${item.tamano}` : `${item.id}`);
 
 export const LucyProvider = ({ children }) => {
   const [productos, setProductos] = useState(PRODUCTOS_INICIALES);
@@ -206,79 +207,120 @@ export const LucyProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
-  const agregarAlCarrito = (producto) => {
-    const prodRef = productos.find((p) => p.id === producto.id);
-    if (!producto.aPedido && (!prodRef || prodRef.stock <= 0)) return;
+  const agregarAlCarrito = (producto, seleccion = {}) => {
+    const cantidadSumar = Number(seleccion.count ?? seleccion.cantidad ?? 1);
+    if (cantidadSumar <= 0) return;
 
-    const existe = carrito.find((item) => item.id === producto.id);
-    if (existe) {
-      setCarrito(
-        carrito.map((item) =>
-          item.id === producto.id ? { ...item, count: item.count + 1 } : item
-        )
-      );
-    } else {
-      setCarrito([...carrito, { ...producto, count: 1 }]);
-    }
+    const prodRef = productos.find((p) => String(p.id) === String(producto.id));
+    if (!producto.aPedido && (!prodRef || prodRef.stock < cantidadSumar)) return;
+
+    const tamanoElegido = seleccion.tamano || producto.tamano || null;
+    const precioElegido = Number(seleccion.price ?? seleccion.precio ?? producto.price ?? 0);
+    const cartItemId = tamanoElegido
+      ? `${producto.id}__${tamanoElegido}`
+      : `${producto.id}`;
+
+    setCarrito((prev) => {
+      const idx = prev.findIndex((item) => obtenerClaveItem(item) === cartItemId);
+      if (idx !== -1) {
+        const copia = [...prev];
+        copia[idx] = {
+          ...copia[idx],
+          count: copia[idx].count + cantidadSumar,
+        };
+        return copia;
+      }
+
+      return [
+        ...prev,
+        {
+          ...producto,
+          cartItemId,
+          tamano: tamanoElegido,
+          price: precioElegido,
+          count: cantidadSumar,
+        },
+      ];
+    });
 
     if (!producto.aPedido) {
-      setProductos(
-        productos.map((item) =>
-          item.id === producto.id ? { ...item, stock: item.stock - 1 } : item
+      setProductos((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(producto.id)
+            ? { ...item, stock: item.stock - cantidadSumar }
+            : item
         )
       );
     }
   };
 
-  const incrementarCount = (id) => {
-    const prodRef = productos.find((p) => p.id === id);
+  const incrementarCount = (itemId) => {
+    const itemCarrito = carrito.find((item) => obtenerClaveItem(item) === String(itemId));
+    if (!itemCarrito) return;
+
+    const prodRef = productos.find((p) => String(p.id) === String(itemCarrito.id));
     if (prodRef && !prodRef.aPedido && prodRef.stock <= 0) return;
 
-    setCarrito(
-      carrito.map((item) =>
-        item.id === id ? { ...item, count: item.count + 1 } : item
+    setCarrito((prev) =>
+      prev.map((item) =>
+        obtenerClaveItem(item) === String(itemId)
+          ? { ...item, count: item.count + 1 }
+          : item
       )
     );
 
     if (prodRef && !prodRef.aPedido) {
-      setProductos(
-        productos.map((item) =>
-          item.id === id ? { ...item, stock: item.stock - 1 } : item
+      setProductos((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(itemCarrito.id)
+            ? { ...item, stock: item.stock - 1 }
+            : item
         )
       );
     }
   };
 
-  const decrementarCount = (id) => {
-    const itemCarrito = carrito.find((item) => item.id === id);
+  const decrementarCount = (itemId) => {
+    const itemCarrito = carrito.find((item) => obtenerClaveItem(item) === String(itemId));
     if (!itemCarrito) return;
 
-    setCarrito(
-      carrito
-        .map((item) => (item.id === id ? { ...item, count: item.count - 1 } : item))
+    setCarrito((prev) =>
+      prev
+        .map((item) =>
+          obtenerClaveItem(item) === String(itemId)
+            ? { ...item, count: item.count - 1 }
+            : item
+        )
         .filter((item) => item.count > 0)
     );
 
-    const prodRef = productos.find((p) => p.id === id);
+    const prodRef = productos.find((p) => String(p.id) === String(itemCarrito.id));
     if (prodRef && !prodRef.aPedido) {
-      setProductos(
-        productos.map((item) =>
-          item.id === id ? { ...item, stock: item.stock + 1 } : item
+      setProductos((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(itemCarrito.id)
+            ? { ...item, stock: item.stock + 1 }
+            : item
         )
       );
     }
   };
 
-  const eliminarDelCarrito = (id) => {
-    const itemCarrito = carrito.find((item) => item.id === id);
-    if (itemCarrito && !itemCarrito.aPedido) {
-      setProductos(
-        productos.map((item) =>
-          item.id === id ? { ...item, stock: item.stock + itemCarrito.count } : item
+  const eliminarDelCarrito = (itemId) => {
+    const itemCarrito = carrito.find((item) => obtenerClaveItem(item) === String(itemId));
+    if (!itemCarrito) return;
+
+    if (!itemCarrito.aPedido) {
+      setProductos((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(itemCarrito.id)
+            ? { ...item, stock: item.stock + itemCarrito.count }
+            : item
         )
       );
     }
-    setCarrito(carrito.filter((item) => item.id !== id));
+
+    setCarrito((prev) => prev.filter((item) => obtenerClaveItem(item) !== String(itemId)));
   };
 
   const vaciarCarrito = () => {
@@ -286,7 +328,7 @@ export const LucyProvider = ({ children }) => {
       if (!item.aPedido) {
         setProductos((prevProds) =>
           prevProds.map((p) =>
-            p.id === item.id ? { ...p, stock: p.stock + item.count } : p
+            String(p.id) === String(item.id) ? { ...p, stock: p.stock + item.count } : p
           )
         );
       }
