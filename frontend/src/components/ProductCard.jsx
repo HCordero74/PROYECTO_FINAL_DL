@@ -7,8 +7,24 @@ export default function ProductCard({ producto }) {
   const { agregarAlCarrito, favoritos, toggleFavorito } = useContext(LucyContext);
   const navigate = useNavigate();
 
+  const nombreNormalizado = (producto.name || '').toLowerCase();
+  const descNormalizada = (producto.desc || '').toLowerCase();
+
+  const esAPedido = Boolean(
+    producto.aPedido ||
+    producto.a_pedido ||
+    nombreNormalizado.includes('a pedido') ||
+    descNormalizada.includes('a pedido')
+  );
+
+  const esPorKilo =
+    ['marraqueta', 'hallulla', 'pan de completo'].includes(nombreNormalizado) ||
+    descNormalizada.includes('por kilo');
+
+  const unidad = esPorKilo ? 'kg' : 'u.';
+
   const esFavorito = favoritos.some((fav) => fav.id === producto.id);
-  const sinStock = !producto.aPedido && producto.stock <= 0;
+  const sinStock = !esAPedido && producto.stock <= 0;
 
   return (
     <Card className="h-100 shadow-sm border-0 position-relative">
@@ -46,7 +62,7 @@ export default function ProductCard({ producto }) {
             ${producto.price.toLocaleString('es-CL')}
           </span>
 
-          {producto.aPedido ? (
+          {esAPedido ? (
             <Badge bg="warning" className="text-dark fw-bold px-2 py-1">
               📋 A Pedido
             </Badge>
@@ -56,7 +72,7 @@ export default function ProductCard({ producto }) {
             </Badge>
           ) : (
             <Badge bg="secondary" className="px-2 py-1">
-              Stock: {producto.stock} u.
+              Stock: {producto.stock} {unidad}
             </Badge>
           )}
         </div>
