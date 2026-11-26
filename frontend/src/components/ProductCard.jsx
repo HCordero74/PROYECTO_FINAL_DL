@@ -2,29 +2,12 @@ import { Card, Button, Badge } from 'react-bootstrap';
 import { useContext } from 'react';
 import { LucyContext } from '../context/LucyContext';
 import { useNavigate } from 'react-router-dom';
-
 export default function ProductCard({ producto }) {
   const { agregarAlCarrito, favoritos, toggleFavorito } = useContext(LucyContext);
   const navigate = useNavigate();
 
-  const nombreNormalizado = (producto.name || '').toLowerCase();
-  const descNormalizada = (producto.desc || '').toLowerCase();
-
-  const esAPedido = Boolean(
-    producto.aPedido ||
-    producto.a_pedido ||
-    nombreNormalizado.includes('a pedido') ||
-    descNormalizada.includes('a pedido')
-  );
-
-  const esPorKilo =
-    ['marraqueta', 'hallulla', 'pan de completo'].includes(nombreNormalizado) ||
-    descNormalizada.includes('por kilo');
-
-  const unidad = esPorKilo ? 'kg' : 'u.';
-
   const esFavorito = favoritos.some((fav) => fav.id === producto.id);
-  const sinStock = !esAPedido && producto.stock <= 0;
+  const sinStock = !producto.aPedido && producto.stock <= 0;
 
   return (
     <Card className="h-100 shadow-sm border-0 position-relative">
@@ -62,7 +45,7 @@ export default function ProductCard({ producto }) {
             ${producto.price.toLocaleString('es-CL')}
           </span>
 
-          {esAPedido ? (
+          {producto.aPedido ? (
             <Badge bg="warning" className="text-dark fw-bold px-2 py-1">
               📋 A Pedido
             </Badge>
@@ -72,7 +55,7 @@ export default function ProductCard({ producto }) {
             </Badge>
           ) : (
             <Badge bg="secondary" className="px-2 py-1">
-              Stock: {producto.stock} {unidad}
+              Stock: {producto.stock} u.
             </Badge>
           )}
         </div>

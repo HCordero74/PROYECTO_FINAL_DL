@@ -74,6 +74,14 @@ const PRODUCTOS_INICIALES = [
   }
 ];
 
+const calcularEsAPedido = (categoriaNormalizada, stockNum, aPedidoFlag) => {
+  return Boolean(
+    aPedidoFlag ||
+      categoriaNormalizada === 'tortas' ||
+      (stockNum === 0 && categoriaNormalizada !== 'cafe')
+  );
+};
+
 const adaptarProducto = (prod = {}) => {
   const catRaw = prod.categoria ?? prod.category ?? 'pan';
   const catLower = String(catRaw).toLowerCase().trim();
@@ -84,18 +92,36 @@ const adaptarProducto = (prod = {}) => {
   else if (catLower.includes('torta')) categoriaNormalizada = 'tortas';
   else if (catLower.includes('café') || catLower.includes('cafe')) categoriaNormalizada = 'cafe';
 
+  const stockNum =
+    prod.stock === null || prod.stock === undefined ? null : Number(prod.stock);
+
+  const esAPedido = calcularEsAPedido(categoriaNormalizada, stockNum, prod.aPedido);
+
   return {
     ...prod,
     id: String(prod.id),
     name: prod.name ?? prod.nombre ?? '',
     desc: prod.desc ?? prod.descripcion ?? '',
     price: Number(prod.price ?? prod.precio ?? 0),
-    stock: prod.stock === null || prod.stock === undefined ? null : Number(prod.stock),
+    stock: stockNum,
     categoria: categoriaNormalizada,
     category: prod.category ?? prod.categoria ?? 'Panadería',
     img: prod.img ?? prod.imagen ?? '',
-    aPedido: Boolean(prod.aPedido)
+    aPedido: esAPedido
   };
+};
+
+const esItemAPedido = (item, prodRef) => {
+  const cat = String(item?.categoria ?? prodRef?.categoria ?? '').toLowerCase().trim();
+  const stockVal = prodRef?.stock ?? item?.stock;
+  const stockNum =
+    stockVal === null || stockVal === undefined ? null : Number(stockVal);
+
+  return calcularEsAPedido(
+    cat,
+    stockNum,
+    item?.aPedido || prodRef?.aPedido
+  );
 };
 
 const obtenerClaveItem = (item) =>
@@ -212,7 +238,9 @@ export const LucyProvider = ({ children }) => {
     if (cantidadSumar <= 0) return;
 
     const prodRef = productos.find((p) => String(p.id) === String(producto.id));
-    if (!producto.aPedido && (!prodRef || prodRef.stock < cantidadSumar)) return;
+    const aPedidoFinal = esItemAPedido(producto, prodRef);
+
+    if (!aPedidoFinal && (!prodRef || prodRef.stock < cantidadSumar)) return;
 
     const tamanoElegido = seleccion.tamano || producto.tamano || null;
     const precioElegido = Number(seleccion.price ?? seleccion.precio ?? producto.price ?? 0);
@@ -226,6 +254,7 @@ export const LucyProvider = ({ children }) => {
         const copia = [...prev];
         copia[idx] = {
           ...copia[idx],
+          aPedido: aPedidoFinal,
           count: copia[idx].count + cantidadSumar,
         };
         return copia;
@@ -235,6 +264,7 @@ export const LucyProvider = ({ children }) => {
         ...prev,
         {
           ...producto,
+          aPedido: aPedidoFinal,
           cartItemId,
           tamano: tamanoElegido,
           price: precioElegido,
@@ -243,7 +273,7 @@ export const LucyProvider = ({ children }) => {
       ];
     });
 
-    if (!producto.aPedido) {
+    if (!aPedidoFinal) {
       setProductos((prev) =>
         prev.map((item) =>
           String(item.id) === String(producto.id)
@@ -259,7 +289,9 @@ export const LucyProvider = ({ children }) => {
     if (!itemCarrito) return;
 
     const prodRef = productos.find((p) => String(p.id) === String(itemCarrito.id));
-    if (prodRef && !prodRef.aPedido && prodRef.stock <= 0) return;
+    const aPedidoFinal = esItemAPedido(itemCarrito, prodRef);
+
+    if (!aPedidoFinal && (!prodRef || prodRef.stock <= 0)) return;
 
     setCarrito((prev) =>
       prev.map((item) =>
@@ -269,7 +301,7 @@ export const LucyProvider = ({ children }) => {
       )
     );
 
-    if (prodRef && !prodRef.aPedido) {
+    if (!aPedidoFinal) {
       setProductos((prev) =>
         prev.map((item) =>
           String(item.id) === String(itemCarrito.id)
@@ -284,6 +316,9 @@ export const LucyProvider = ({ children }) => {
     const itemCarrito = carrito.find((item) => obtenerClaveItem(item) === String(itemId));
     if (!itemCarrito) return;
 
+    const prodRef = productos.find((p) => String(p.id) === String(itemCarrito.id));
+    const aPedidoFinal = esItemAPedido(itemCarrito, prodRef);
+
     setCarrito((prev) =>
       prev
         .map((item) =>
@@ -294,8 +329,7 @@ export const LucyProvider = ({ children }) => {
         .filter((item) => item.count > 0)
     );
 
-    const prodRef = productos.find((p) => String(p.id) === String(itemCarrito.id));
-    if (prodRef && !prodRef.aPedido) {
+    if (!aPedidoFinal) {
       setProductos((prev) =>
         prev.map((item) =>
           String(item.id) === String(itemCarrito.id)
@@ -310,7 +344,10 @@ export const LucyProvider = ({ children }) => {
     const itemCarrito = carrito.find((item) => obtenerClaveItem(item) === String(itemId));
     if (!itemCarrito) return;
 
-    if (!itemCarrito.aPedido) {
+    const prodRef = productos.find((p) => String(p.id) === String(itemCarrito.id));
+    const aPedidoFinal = esItemAPedido(itemCarrito, prodRef);
+
+    if (!aPedidoFinal) {
       setProductos((prev) =>
         prev.map((item) =>
           String(item.id) === String(itemCarrito.id)
@@ -325,7 +362,10 @@ export const LucyProvider = ({ children }) => {
 
   const vaciarCarrito = () => {
     carrito.forEach((item) => {
-      if (!item.aPedido) {
+      const prodRef = productos.find((p) => String(p.id) === String(item.id));
+      const aPedidoFinal = esItemAPedido(item, prodRef);
+
+      if (!aPedidoFinal) {
         setProductos((prevProds) =>
           prevProds.map((p) =>
             String(p.id) === String(item.id) ? { ...p, stock: p.stock + item.count } : p

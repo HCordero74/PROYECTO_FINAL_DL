@@ -18,6 +18,12 @@ export default function DetalleProducto() {
 
   const producto = productos.find((p) => String(p.id) === String(id));
 
+  const esProductoAPedido = Boolean(
+    producto?.aPedido ||
+      producto?.categoria === 'tortas' ||
+      (producto && Number(producto.stock) === 0 && producto.categoria !== 'cafe')
+  );
+
   const opcionesTamano = useMemo(
     () => extraerOpcionesTamano(producto),
     [producto]
@@ -45,7 +51,7 @@ export default function DetalleProducto() {
     );
   }
 
-  if (!producto.aPedido && cantidad > producto.stock && producto.stock > 0) {
+  if (!esProductoAPedido && cantidad > producto.stock && producto.stock > 0) {
     setCantidad(producto.stock);
   }
 
@@ -57,7 +63,7 @@ export default function DetalleProducto() {
     : Number(producto.price) || 0;
 
   const handleIncrementar = () => {
-    if (producto.aPedido || cantidad < producto.stock) {
+    if (esProductoAPedido || cantidad < producto.stock) {
       setCantidad((prev) => prev + 1);
     }
   };
@@ -69,13 +75,16 @@ export default function DetalleProducto() {
   };
 
   const handleAgregarAlCarrito = () => {
-    if (!producto.aPedido && (cantidad <= 0 || cantidad > producto.stock)) return;
+    if (!esProductoAPedido && (cantidad <= 0 || cantidad > producto.stock)) return;
 
-    agregarAlCarrito(producto, {
-      tamano: tamanoSeleccionado ? tamanoSeleccionado.etiqueta : null,
-      price: precioUnitario,
-      count: cantidad,
-    });
+    agregarAlCarrito(
+      { ...producto, aPedido: esProductoAPedido },
+      {
+        tamano: tamanoSeleccionado ? tamanoSeleccionado.etiqueta : null,
+        price: precioUnitario,
+        count: cantidad,
+      }
+    );
 
     navigate('/tienda');
   };
@@ -101,7 +110,7 @@ export default function DetalleProducto() {
             />
           </Col>
           <Col md={6}>
-            {producto.aPedido && (
+            {esProductoAPedido && (
               <span className="badge bg-warning text-dark mb-2">Elaboración Artesanal</span>
             )}
             <h2 className="fw-bold mb-3">{producto.name}</h2>
@@ -131,19 +140,19 @@ export default function DetalleProducto() {
               </div>
             )}
 
-            {!producto.aPedido && (
+            {!esProductoAPedido && (
               <p className="text-muted fw-semibold">
                 Stock disponible: <span className="text-dark">{producto.stock} u.</span>
               </p>
             )}
 
-            {!producto.aPedido && producto.stock <= 0 ? (
+            {!esProductoAPedido && producto.stock <= 0 ? (
               <Button variant="danger" disabled className="w-100 fw-bold py-2">
                 Agotado
               </Button>
             ) : (
               <>
-                {!producto.aPedido && (
+                {!esProductoAPedido && (
                   <div className="d-flex align-items-center gap-3 mb-4">
                     <span className="fw-semibold">Cantidad:</span>
                     <Button variant="outline-secondary" size="sm" onClick={handleDecrementar}>
